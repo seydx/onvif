@@ -14,7 +14,7 @@ export type HttpClientOptions = {
 
 export type RequestOptions = {
   body: string
-  url?: URL
+  url?: URL | string
   service?: string
   raw?: boolean
 }
@@ -52,7 +52,7 @@ export class HttpClient {
 
   public async request<T>(options: RequestOptions): Promise<[T, string]> {
     const { body, service, url: requestUrl } = options
-    const url = requestUrl?.toString() ?? this.createUrl(service)
+    const url = requestUrl !== undefined ? (typeof requestUrl === 'string' ? requestUrl : requestUrl.toString()) : this.createUrl(service)
 
     const response = await request(url, {
       method: 'POST',

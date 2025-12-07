@@ -4,6 +4,7 @@ import type { Agent } from 'node:https'
 import type { ConnectionOptions } from 'node:tls'
 import { HttpClient, type HttpClientOptions, type RequestOptions } from './client/http.ts'
 import { Device } from './device.ts'
+import { Events } from './events.ts'
 import type { GetDeviceInformationResponse, GetSystemDateAndTimeResponse } from './interfaces/deviceManagement.ts'
 import type { Capabilities, DateTime, Profile } from './interfaces/onvif.ts'
 import { Media } from './media.ts'
@@ -123,6 +124,7 @@ export class Onvif extends EventEmitter {
   public readonly device: Device
   public readonly media: Media
   public readonly ptz: PTZ
+  public readonly events: Events
   private readonly httpClient: HttpClient
   public useSecure: boolean
   public secureOptions: ConnectionOptions
@@ -178,6 +180,7 @@ export class Onvif extends EventEmitter {
     this.device = new Device(this)
     this.media = new Media(this)
     this.ptz = new PTZ(this)
+    this.events = new Events(this)
 
     if (options.autoConnect) {
       setImmediate(async () => {
@@ -231,7 +234,7 @@ export class Onvif extends EventEmitter {
     return '</s:Body></s:Envelope>'
   }
 
-  private passwordDigest(): { passDigest: string; nonce: string; timestamp: string } {
+  public passwordDigest(): { passDigest: string; nonce: string; timestamp: string } {
     if (this.password === undefined) {
       throw new Error('Password is undefined')
     }
