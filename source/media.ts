@@ -73,8 +73,9 @@ export class Media {
 
       // Slight difference in Media1 and Media2 reply XML
       // Generate a reply that looks like a Media1 reply for existing library users
-      // @ts-expect-error TODO: this request client sucks big time...
-      this.profiles = data.getProfilesResponse.profiles.map((profile: Record<string, unknown>) => {
+      const response = data as { getProfilesResponse?: { profiles?: unknown[] } }
+      const profiles = response.getProfilesResponse?.profiles ?? []
+      this.profiles = profiles.map((profile: unknown) => {
         const tmp = linerase(profile) as MediaProfile
         const conf = tmp.configurations as ConfigurationSet
         const newProfile: Profile = {
@@ -125,23 +126,22 @@ export class Media {
       return this.profiles
     }
     // Original ONVIF Media support (used in Profile S)
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getProfilesResponse?: { profiles?: unknown[] } }>({
       service: 'media',
       body: '<GetProfiles xmlns="http://www.onvif.org/ver10/media/wsdl"/>'
     })
-    // @ts-expect-error TODO: this request client sucks big time...
-    this.profiles = data.getProfilesResponse.profiles.map(linerase)
+    const profiles = data.getProfilesResponse?.profiles ?? []
+    this.profiles = profiles.map((p) => linerase(p)) as Profile[]
     return this.profiles
   }
 
   async getVideoSources(): Promise<GetVideoSourcesResponse> {
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getVideoSourcesResponse?: unknown }>({
       service: 'media',
       body: '<GetVideoSources xmlns="http://www.onvif.org/ver10/media/wsdl"/>'
     })
-    // @ts-expect-error TODO: this request client sucks big time...
-    const videoSourcesResponse = linerase(data, { array: ['videoSources'] })
-      .getVideoSourcesResponse as GetVideoSourcesResponse
+    const parsed = linerase(data.getVideoSourcesResponse, { array: ['videoSources'] }) as GetVideoSourcesResponse
+    const videoSourcesResponse = parsed ?? { videoSources: [] }
 
     if (Array.isArray(videoSourcesResponse.videoSources)) {
       for (const videoSource of videoSourcesResponse.videoSources) {
@@ -167,9 +167,8 @@ export class Media {
     }</GetVideoSourceConfigurations>`
     const service = this.onvif.device.media2Support ? 'media2' : 'media'
 
-    const [data] = await this.onvif.request({ service, body })
-    // @ts-expect-error TODO: this request client sucks big time...
-    return linerase(data, { array: ['configurations'] }).getVideoSourceConfigurationsResponse
+    const [data] = await this.onvif.request<{ getVideoSourceConfigurationsResponse?: unknown }>({ service, body })
+    return linerase(data.getVideoSourceConfigurationsResponse, { array: ['configurations'] }) as GetVideoSourceConfigurationsResponse
   }
 
   async getVideoSourceConfigurationOptions({
@@ -185,9 +184,8 @@ export class Media {
     }</GetVideoSourceConfigurationOptions>`
     const service = this.onvif.device.media2Support ? 'media2' : 'media'
 
-    const [data] = await this.onvif.request({ service, body })
-    // @ts-expect-error TODO: this request client sucks big time...
-    return linerase(data, { array: ['videoSourceTokensAvailable'] }).getVideoSourceConfigurationOptionsResponse
+    const [data] = await this.onvif.request<{ getVideoSourceConfigurationOptionsResponse?: unknown }>({ service, body })
+    return linerase(data.getVideoSourceConfigurationOptionsResponse, { array: ['videoSourceTokensAvailable'] }) as GetVideoSourceConfigurationOptionsResponse
   }
 
   /**
@@ -216,11 +214,9 @@ export class Media {
     }</GetVideoEncoderConfigurations>`
     const service = this.onvif.device.media2Support ? 'media2' : 'media'
 
-    const [data] = await this.onvif.request({ service, body })
+    const [data] = await this.onvif.request<{ getVideoEncoderConfigurationsResponse?: unknown }>({ service, body })
 
-    // @ts-expect-error TODO: this request client sucks big time...
-    const { getVideoEncoderConfigurationsResponse } = linerase(data, { array: ['configurations'] })
-    return getVideoEncoderConfigurationsResponse
+    return linerase(data.getVideoEncoderConfigurationsResponse, { array: ['configurations'] }) as GetVideoEncoderConfigurationsResponse | GetVideoEncoder2ConfigurationsResponse
   }
 
   /**
@@ -270,7 +266,7 @@ export class Media {
       }
 
       // Profile T request using Media2
-      const [data] = await this.onvif.request({
+      const [data] = await this.onvif.request<{ getStreamUriResponse?: unknown }>({
         service: 'media2',
         body: `
           <GetStreamUri xmlns="http://www.onvif.org/ver20/media/wsdl">
@@ -278,11 +274,10 @@ export class Media {
             <ProfileToken>${profileToken || this.onvif.activeSource?.profileToken}</ProfileToken>
           </GetStreamUri>`
       })
-      // @ts-expect-error TODO: this request client sucks big time...
-      return linerase(data).getStreamUriResponse
+      return linerase(data.getStreamUriResponse) as MediaUri | string
     }
     // Original (v.1.0)  ONVIF Specification for Media (used in Profile S)
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getStreamUriResponse?: { mediaUri?: unknown } }>({
       service: 'media',
       body: `
         <GetStreamUri xmlns="http://www.onvif.org/ver10/media/wsdl">
@@ -295,8 +290,7 @@ export class Media {
           <ProfileToken>${profileToken || this.onvif.activeSource?.profileToken}</ProfileToken>
         </GetStreamUri>`
     })
-    // @ts-expect-error TODO: this request client sucks big time...
-    return linerase(data).getStreamUriResponse.mediaUri
+    return linerase(data.getStreamUriResponse?.mediaUri) as MediaUri
   }
 
   /**
@@ -311,25 +305,23 @@ export class Media {
   async getSnapshotUri({ profileToken }: GetSnapshotUri = {}): Promise<{ uri: AnyURI }> {
     if (this.onvif.device.media2Support) {
       // Profile T request using Media2
-      const [data] = await this.onvif.request({
+      const [data] = await this.onvif.request<{ getSnapshotUriResponse?: unknown }>({
         service: 'media2',
         body: `
           <GetSnapshotUri xmlns="http://www.onvif.org/ver20/media/wsdl">
             <ProfileToken>${profileToken || this.onvif.activeSource?.profileToken}</ProfileToken>
           </GetSnapshotUri>`
       })
-      // @ts-expect-error TODO: this request client sucks big time...
-      return linerase(data).getSnapshotUriResponse
+      return linerase(data.getSnapshotUriResponse) as { uri: AnyURI }
     }
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getSnapshotUriResponse?: { mediaUri?: unknown } }>({
       service: 'media',
       body: `
         <GetSnapshotUri xmlns="http://www.onvif.org/ver10/media/wsdl">
           <ProfileToken>${profileToken || this.onvif.activeSource?.profileToken}</ProfileToken>
         </GetSnapshotUri>`
     })
-    // @ts-expect-error TODO: this request client sucks big time...
-    return linerase(data).getSnapshotUriResponse.mediaUri
+    return linerase(data.getSnapshotUriResponse?.mediaUri) as { uri: AnyURI }
   }
 
   async getOSDs({ configurationToken, OSDToken }: GetOSDs = {}): Promise<GetOSDsResponse> {
@@ -338,15 +330,13 @@ export class Media {
       ? 'http://www.onvif.org/ver20/media/wsdl'
       : 'http://www.onvif.org/ver10/media/wsdl'
 
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getOSDsResponse?: unknown }>({
       service: mediaService,
       body: `<GetOSDs xmlns="${mediaNs}" >${
         configurationToken ? `<ConfigurationToken>${configurationToken}</ConfigurationToken>` : ''
       }${OSDToken ? `<OSDToken>${configurationToken}</OSDToken>` : ''}</GetOSDs>`
     })
-    // this.videoSources = linerase(data).getVideoSourcesResponse.videoSources;
-    // @ts-expect-error TODO: this request client sucks big time...
-    return linerase(data.getOSDsResponse, { array: ['OSDs'] })
+    return linerase(data.getOSDsResponse, { array: ['OSDs'] }) as GetOSDsResponse
   }
 
   async getOSDOptions({ configurationToken }: GetOSDOptions = {}): Promise<GetOSDOptionsResponse> {
@@ -355,15 +345,13 @@ export class Media {
       ? 'http://www.onvif.org/ver20/media/wsdl'
       : 'http://www.onvif.org/ver10/media/wsdl'
 
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getOSDOptionsResponse?: unknown }>({
       service: mediaService,
       body: `
         <GetOSDOptions xmlns="${mediaNs}" >
           <ConfigurationToken>${configurationToken ?? this.onvif.activeSource?.videoSourceConfigurationToken}</ConfigurationToken>
         </GetOSDOptions>`
     })
-    // @ts-expect-error TODO: this request client sucks big time...
-    const result = linerase(data).getOSDOptionsResponse
-    return result
+    return linerase(data.getOSDOptionsResponse) as GetOSDOptionsResponse
   }
 }

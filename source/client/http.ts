@@ -1,4 +1,5 @@
-import type { SecureContextOptions } from 'node:tls'
+import type { ConnectionOptions } from 'node:tls'
+import { Agent, request } from 'undici'
 import { parseSOAPString } from '../utils/xml.ts'
 
 export type HttpClientOptions = {
@@ -8,7 +9,7 @@ export type HttpClientOptions = {
   uriMap: Record<string, URL>
   timeout: number
   useSecure: boolean
-  secureOptions?: SecureContextOptions
+  secureOptions?: ConnectionOptions
 }
 
 export type RequestOptions = {
@@ -21,11 +22,27 @@ export type RequestOptions = {
 export class HttpClient {
   private readonly baseUrl: string
   private readonly options: HttpClientOptions
+  private readonly agent: Agent
 
   constructor(options: HttpClientOptions) {
     this.options = options
-    const { hostname, port, useSecure } = options
+    const { hostname, port, useSecure, secureOptions } = options
     this.baseUrl = `${useSecure ? 'https' : 'http'}://${hostname}:${port}`
+
+    // Create undici Agent with SSL/TLS options if needed
+    if (useSecure && secureOptions) {
+      this.agent = new Agent({
+        connect: {
+          rejectUnauthorized: secureOptions.rejectUnauthorized ?? false,
+          ca: secureOptions.ca,
+          cert: secureOptions.cert,
+          key: secureOptions.key,
+          passphrase: secureOptions.passphrase
+        }
+      })
+    } else {
+      this.agent = new Agent()
+    }
   }
 
   private createUrl(service?: string): string {
@@ -35,29 +52,32 @@ export class HttpClient {
 
   public async request<T>(options: RequestOptions): Promise<[T, string]> {
     const { body, service, url: requestUrl } = options
-    const url = requestUrl ?? this.createUrl(service)
+    const url = requestUrl?.toString() ?? this.createUrl(service)
 
-    const requestOptions: RequestInit = {
+    const response = await request(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/soap+xml',
         charset: 'utf-8'
       },
       body,
-      signal: AbortSignal.timeout(this.options.timeout)
+      bodyTimeout: this.options.timeout,
+      headersTimeout: this.options.timeout,
+      dispatcher: this.agent
+    })
+
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw new Error(`HTTP error! status: ${response.statusCode}`)
     }
 
-    if (this.options.useSecure || Object.keys(this.options.secureOptions ?? {}).length !== 0) {
-      console.error('SSL options are not directly supported with fetch. Consider using a custom HTTPS agent if needed.')
-    }
-
-    const response = await fetch(url, requestOptions)
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-
-    const xml = await response.text()
+    const xml = await response.body.text()
     return await parseSOAPString<T>(xml)
+  }
+
+  /**
+   * Close the HTTP client and release resources
+   */
+  public async close(): Promise<void> {
+    await this.agent.close()
   }
 }

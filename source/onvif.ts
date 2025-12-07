@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
 import { EventEmitter } from 'node:events'
 import type { Agent } from 'node:https'
-import type { SecureContextOptions } from 'node:tls'
+import type { ConnectionOptions } from 'node:tls'
 import { HttpClient, type HttpClientOptions, type RequestOptions } from './client/http.ts'
 import { Device } from './device.ts'
 import type { GetDeviceInformationResponse, GetSystemDateAndTimeResponse } from './interfaces/deviceManagement.ts'
@@ -17,7 +17,7 @@ export type OnvifOptions = {
   /** Set true if using `https` protocol, defaults to false. */
   useSecure?: boolean
   /** Set options for https like ca, cert, ciphers, rejectUnauthorized, secureOptions, secureProtocol, etc. */
-  secureOptions?: SecureContextOptions
+  secureOptions?: ConnectionOptions
   hostname: string
   username?: string
   password?: string
@@ -125,7 +125,7 @@ export class Onvif extends EventEmitter {
   public readonly ptz: PTZ
   private readonly httpClient: HttpClient
   public useSecure: boolean
-  public secureOptions: SecureContextOptions
+  public secureOptions: ConnectionOptions
   public hostname: string
   public username?: string | undefined
   public password?: string | undefined
@@ -140,8 +140,10 @@ export class Onvif extends EventEmitter {
   public capabilities: Capabilities
   public defaultProfiles: Profile[] = []
   public defaultProfile?: Profile
-  // @ts-expect-error TODO investigate this
-  private activeSources: ActiveSource[] = []
+  #activeSources: ActiveSource[] = []
+  public get activeSources(): ActiveSource[] {
+    return this.#activeSources
+  }
   public activeSource?: ActiveSource
   public readonly urn?: string | undefined
   public deviceInformation?: GetDeviceInformationResponse
@@ -166,8 +168,7 @@ export class Onvif extends EventEmitter {
       hostname: this.hostname,
       port: this.port,
       basePath: this.path,
-      // @ts-expect-error TODO fix later
-      uriMap: this.uri,
+      uriMap: this.uri as Record<string, URL>,
       timeout: this.timeout,
       useSecure: this.useSecure,
       secureOptions: this.secureOptions
@@ -366,7 +367,7 @@ export class Onvif extends EventEmitter {
     if (!['Manual', 'NTP'].includes(options.dateTimeType)) {
       throw new Error('DateTimeType should be `Manual` or `NTP`')
     }
-    const [data] = await this.request({
+    const [data] = await this.request<{ setSystemDateAndTimeResponse?: unknown }>({
       // Try the Unauthenticated Request first. Do not use this._envelopeHeader() as we don't have timeShift yet.
       body: `
       <SetSystemDateAndTime xmlns="http://www.onvif.org/ver10/device/wsdl">
@@ -404,10 +405,9 @@ export class Onvif extends EventEmitter {
         .trim()
         .replace(/\n\s+/g, '')
     })
-    // @ts-expect-error this should be typed by request function
-    if (linerase(data).setSystemDateAndTimeResponse !== '') {
-      // @ts-expect-error this should be typed by request function
-      throw new Error(`Wrong 'SetSystemDateAndTime' response: '${linerase(data).setSystemDateAndTimeResponse}'`)
+    const response = linerase(data.setSystemDateAndTimeResponse)
+    if (response !== '' && response !== undefined && response !== null) {
+      throw new Error(`Wrong 'SetSystemDateAndTime' response: '${JSON.stringify(response)}'`)
     }
     // get new system time from device
     return await this.getSystemDateAndTime()
@@ -418,7 +418,7 @@ export class Onvif extends EventEmitter {
    *
    */
   async getActiveSources(): Promise<void> {
-    this.activeSources = this.media.videoSources
+    this.#activeSources = this.media.videoSources
       .map((videoSource, idx) => {
         const videoSrcToken = videoSource.token
         const appropriateProfiles = this.media.profiles.filter(
@@ -444,8 +444,7 @@ export class Onvif extends EventEmitter {
         const activeSource: ActiveSource = {
           sourceToken: videoSource.token,
           profileToken: defaultProfile.token,
-          // @ts-expect-error TODO: fix this
-          videoSourceConfigurationToken: defaultProfile.videoSourceConfiguration?.token
+          videoSourceConfigurationToken: defaultProfile.videoSourceConfiguration?.token ?? ''
         }
 
         const encoderConfig = defaultProfile.videoEncoderConfiguration

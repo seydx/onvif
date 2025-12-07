@@ -1,6 +1,6 @@
 import type { Duration, MoveStatus, ReferenceToken, Vector1D, Vector2D } from './interfaces/common.ts'
 import type { PTZConfiguration, PTZSpeed, Space1DDescription, Space2DDescription } from './interfaces/onvif.ts'
-import type { GetConfigurationsResponse } from './interfaces/ptz.2.ts'
+import type { GetConfigurationsResponse, SetPresetResponse as SetPresetResponseType } from './interfaces/ptz.2.ts'
 import type { Onvif } from './onvif.ts'
 import { linerase } from './utils/xml.ts'
 
@@ -372,19 +372,26 @@ export class PTZ {
    * Use this function to get maximum number of presets, ranges of admitted values for x, y, zoom, iris, focus
    */
   async getNodes(): Promise<Record<ReferenceToken, PTZNode>> {
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getNodesResponse?: { PTZNode?: unknown }; PTZNode?: unknown }>({
       service: 'PTZ',
       body: '<GetNodes xmlns="http://www.onvif.org/ver20/ptz/wsdl" />'
     })
     this.#nodes = {}
-    console.warn('NOT IMPLEMENTED')
-    console.log('GetNodes response: ', data)
-    // TODO fix this later
-    // data[0].getNodesResponse.forEach((ptzNodeResponse: GetNodesResponse) => {
-    //   ptzNodeResponse.PTZNode?.forEach((ptzNode) => {
-    //     this.#nodes[ptzNode.token] = ptzNode
-    //   })
-    // })
+
+    // Response structure varies by camera - some wrap in getNodesResponse, some don't
+    const rawNodes = data.getNodesResponse?.PTZNode ?? data.PTZNode
+    // linerase transforms $ attributes into the object and converts strings to proper types
+    const result = linerase(rawNodes) as PTZNode | PTZNode[] | undefined
+
+    if (result) {
+      const nodeList = Array.isArray(result) ? result : [result]
+      for (const node of nodeList) {
+        if (node.token) {
+          this.#nodes[node.token] = node
+        }
+      }
+    }
+
     return this.#nodes
   }
 
@@ -438,7 +445,7 @@ export class PTZ {
    * @param options - The options for getting presets.
    */
   async getPresets({ profileToken }: GetPresetsOptions = {}): Promise<Record<ReferenceToken, PTZPreset>> {
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getPresetsResponse?: { preset?: unknown } }>({
       service: 'PTZ',
       body: `
         <GetPresets xmlns="http://www.onvif.org/ver20/ptz/wsdl">
@@ -447,8 +454,9 @@ export class PTZ {
       `
     })
     this.#presets = {}
-    // @ts-expect-error TODO this has to be fixed and type checked
-    const result = linerase(data.getPresetsResponse.preset) as PTZPreset[] | PTZPreset
+    const rawPresets = data.getPresetsResponse?.preset
+    if (!rawPresets) return this.#presets
+    const result = linerase(rawPresets) as PTZPreset[] | PTZPreset
     if (Array.isArray(result)) {
       for (const preset of result) {
         this.#presets[preset.token] = preset
@@ -471,9 +479,12 @@ export class PTZ {
     }
   }
 
+  private static isPTZInputVector(input: PTZVector | PTZInputVector): input is PTZInputVector {
+    return 'x' in input || 'pan' in input || 'tilt' in input || 'y' in input
+  }
+
   private static PTZVectorToXML(input: PTZVector | PTZInputVector): string {
-    // @ts-expect-error TODO this has to be fixed and type checked, probably broken
-    const vector: PTZVector = 'x' in input || 'pan' in input ? PTZ.formatPTZSimpleVector(input) : input
+    const vector: PTZVector = PTZ.isPTZInputVector(input) ? PTZ.formatPTZSimpleVector(input) : input
     return `
       ${vector.panTilt ? `<PanTilt x="${vector.panTilt.x}" y="${vector.panTilt.y}" xmlns="http://www.onvif.org/ver10/schema"/>` : ''}
       ${vector.zoom ? `<Zoom x="${vector.zoom.x}" xmlns="http://www.onvif.org/ver10/schema"/>` : ''}
@@ -510,7 +521,7 @@ export class PTZ {
    * @param options - The options for setting presets.
    */
   async setPreset({ profileToken, presetName, presetToken }: SetPresetOptions): Promise<SetPresetResponse> {
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ setPresetResponse?: SetPresetResponseType }>({
       service: 'PTZ',
       body: `
         <SetPreset xmlns="http://www.onvif.org/ver20/ptz/wsdl">
@@ -520,8 +531,11 @@ export class PTZ {
         </SetPreset>
       `
     })
-    // @ts-expect-error TODO this has to be fixed and type checked
-    return linerase(data.setPresetResponse) as SetPresetResponse
+    const response = data.setPresetResponse
+    if (!response?.presetToken) {
+      throw new Error('SetPreset response missing presetToken')
+    }
+    return linerase(response) as SetPresetResponse
   }
 
   /**
@@ -584,7 +598,7 @@ export class PTZ {
    * @param options - The options for getting the PTZ status.
    */
   async getStatus({ profileToken }: GetStatusOptions = {}): Promise<PTZStatus> {
-    const [data] = await this.onvif.request({
+    const [data] = await this.onvif.request<{ getStatusResponse?: { PTZStatus?: unknown } }>({
       service: 'PTZ',
       body: `
         <GetStatus xmlns="http://www.onvif.org/ver20/ptz/wsdl">
@@ -592,8 +606,11 @@ export class PTZ {
         </GetStatus>
       `
     })
-    // @ts-expect-error TODO this has to be fixed and type checked
-    return linerase(data).getStatusResponse.PTZStatus
+    const rawStatus = data.getStatusResponse?.PTZStatus
+    if (!rawStatus) {
+      throw new Error('GetStatus response missing PTZStatus')
+    }
+    return linerase(rawStatus) as PTZStatus
   }
 
   /**
