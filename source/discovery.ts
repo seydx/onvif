@@ -6,6 +6,102 @@ import { Onvif } from './onvif.ts'
 import { guid, linerase, parseSOAPString } from './utils/xml.ts'
 
 /**
+ * Parsed information from WS-Discovery Scopes
+ * Available WITHOUT authentication
+ */
+export interface DiscoveryInfo {
+  /** Device name from scope (onvif://www.onvif.org/name/...) */
+  name?: string
+  /** Hardware model from scope (onvif://www.onvif.org/hardware/...) */
+  hardware?: string
+  /** Location from scope (onvif://www.onvif.org/location/...) */
+  location?: string
+  /** Device type from scope (onvif://www.onvif.org/type/...) */
+  types?: string[]
+  /** ONVIF profiles from scope (onvif://www.onvif.org/Profile/...) */
+  profiles?: string[]
+  /** MAC address if available in scope */
+  mac?: string
+  /** Raw scopes for additional parsing */
+  rawScopes?: string[]
+}
+
+/**
+ * Parse WS-Discovery Scopes into structured DiscoveryInfo
+ *
+ * @param scopesString - Space-separated scope URIs
+ * @returns Parsed discovery info
+ *
+ * @example
+ * Scope URIs look like:
+ * - onvif://www.onvif.org/name/IPCAM
+ * - onvif://www.onvif.org/hardware/IPC-model
+ * - onvif://www.onvif.org/type/video_encoder
+ * - onvif://www.onvif.org/Profile/Streaming
+ * - onvif://www.onvif.org/location/country/germany
+ * - onvif://www.onvif.org/MAC/aa-bb-cc-dd-ee-ff
+ */
+function parseScopes(scopesString?: string): DiscoveryInfo {
+  const info: DiscoveryInfo = {}
+
+  if (!scopesString) {
+    return info
+  }
+
+  const scopes = scopesString.split(/\s+/).filter(Boolean)
+  info.rawScopes = scopes
+
+  for (const scope of scopes) {
+    try {
+      // Handle both URL-encoded and plain values
+      const decoded = decodeURIComponent(scope)
+
+      // Match onvif://www.onvif.org/category/value pattern
+      const match = decoded.match(/onvif:\/\/www\.onvif\.org\/(\w+)\/(.+)/i)
+      if (!match) continue
+
+      const category = match[1]
+      const value = match[2]
+
+      // Skip if category or value is missing
+      if (!category || !value) continue
+
+      const lowerCategory = category.toLowerCase()
+
+      switch (lowerCategory) {
+        case 'name':
+          // Name might have URL encoding, decode it
+          info.name = value.replace(/%20/g, ' ').replace(/\+/g, ' ')
+          break
+        case 'hardware':
+          info.hardware = value
+          break
+        case 'location':
+          // Location can be hierarchical like country/city
+          info.location = value.replace(/\//g, ', ')
+          break
+        case 'type':
+          info.types = info.types || []
+          info.types.push(value)
+          break
+        case 'profile':
+          info.profiles = info.profiles || []
+          info.profiles.push(value)
+          break
+        case 'mac':
+          // Normalize MAC address format
+          info.mac = value.replace(/-/g, ':').toUpperCase()
+          break
+      }
+    } catch {
+      // Ignore malformed scope URIs
+    }
+  }
+
+  return info
+}
+
+/**
  * Options for discovery process
  */
 export type DiscoveryOptions = {
@@ -133,13 +229,23 @@ export class DiscoverySingleton extends EventEmitter {
           }
 
           const parsedData = linerase(data) as {
-            probeMatches?: { probeMatch?: { endpointReference?: { address?: string }; XAddrs?: string } }
+            probeMatches?: {
+              probeMatch?: {
+                endpointReference?: { address?: string }
+                XAddrs?: string
+                scopes?: string  // lowercase due to tag processor in parseSOAPString
+              }
+            }
           }
           const camAddr = parsedData?.probeMatches?.probeMatch?.endpointReference?.address
 
           if (!camAddr || cams.has(camAddr)) {
             return
           }
+
+          // Parse scopes for pre-auth device info (lowercase field name)
+          const scopesString = parsedData?.probeMatches?.probeMatch?.scopes
+          const discoveryInfo = parseScopes(scopesString)
 
           let cam: Onvif | Record<string, unknown>
 
@@ -155,14 +261,19 @@ export class DiscoverySingleton extends EventEmitter {
               throw new Error(`No matching XAddr found for ${rinfo.address}`)
             }
 
+            // Fix: Default to port 80 when not specified in URL (empty string becomes 0)
+            const port = camUri.port ? Number(camUri.port) : 80
+
             cam = new Onvif({
               hostname: camUri.hostname,
-              port: Number(camUri.port),
+              port,
               path: camUri.pathname,
-              urn: camAddr
+              urn: camAddr,
+              discoveryInfo
             })
           } else {
-            cam = parsedData
+            // Include discovery info in raw response
+            cam = { ...parsedData, discoveryInfo }
           }
 
           cams.set(camAddr, cam)

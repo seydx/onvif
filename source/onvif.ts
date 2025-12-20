@@ -4,6 +4,7 @@ import type { Agent } from 'node:https'
 import type { ConnectionOptions } from 'node:tls'
 import { HttpClient, type HttpClientOptions, type RequestOptions } from './client/http.ts'
 import { Device } from './device.ts'
+import type { DiscoveryInfo } from './discovery.ts'
 import { Events } from './events.ts'
 import type { GetDeviceInformationResponse, GetSystemDateAndTimeResponse } from './interfaces/deviceManagement.ts'
 import type { Capabilities, DateTime, Profile } from './interfaces/onvif.ts'
@@ -32,6 +33,8 @@ export type OnvifOptions = {
   preserveAddress?: boolean
   /** Set false if the camera should not connect automatically, defaults false. */
   autoConnect?: boolean
+  /** Pre-auth discovery info from WS-Discovery Scopes (name, hardware, profiles, etc.) */
+  discoveryInfo?: DiscoveryInfo
 }
 
 export type OnvifServices = {
@@ -148,6 +151,8 @@ export class Onvif extends EventEmitter {
   }
   public activeSource?: ActiveSource
   public readonly urn?: string | undefined
+  /** Pre-auth discovery info from WS-Discovery Scopes (name, hardware, profiles, etc.) */
+  public readonly discoveryInfo?: DiscoveryInfo | undefined
   public deviceInformation?: GetDeviceInformationResponse
 
   constructor(options: OnvifOptions) {
@@ -161,6 +166,7 @@ export class Onvif extends EventEmitter {
     this.path = options.path ?? '/onvif/device_service'
     this.timeout = options.timeout || 120000
     this.urn = options.urn
+    this.discoveryInfo = options.discoveryInfo
     this.agent = options.agent ?? false
     this.preserveAddress = options.preserveAddress ?? false
     this.uri = {}
