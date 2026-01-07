@@ -46,6 +46,67 @@ export type GetSnapshotUriOptions = {
   profileToken?: ReferenceToken
 }
 
+/**
+ * Represents a single media source from an ONVIF profile
+ */
+export interface OnvifMediaSource {
+  /** Profile token */
+  profileToken: string
+
+  /** Profile name (e.g., "mainStream") */
+  profileName: string
+
+  /** RTSP Stream URI */
+  streamUri: string
+
+  /** HTTP Snapshot URI for THIS profile (optional) */
+  snapshotUri?: string
+
+  /** Video codec (H264, H265, JPEG, etc.) */
+  encoding: string
+
+  /** Resolution */
+  resolution: {
+    width: number
+    height: number
+  }
+
+  /** Total pixels (width * height) - for easy sorting/comparison */
+  pixels: number
+
+  /** Frame rate (optional) */
+  fps?: number
+
+  /** Bitrate in kbps (optional) */
+  bitrate?: number
+
+  /** Whether this is a JPEG/snapshot-only stream */
+  isSnapshot: boolean
+
+  /** Has audio on this profile */
+  hasAudio: boolean
+}
+
+/**
+ * Result of getMediaSources() with categorized streams
+ */
+export interface OnvifMediaResult {
+  /** All sources sorted by resolution (highest first, JPEG profiles last) */
+  sources: OnvifMediaSource[]
+
+  /** High resolution stream (best quality video) */
+  high?: OnvifMediaSource
+
+  /** Mid resolution stream (if 3+ video streams available) */
+  mid?: OnvifMediaSource
+
+  /** Low resolution stream (lowest quality video) */
+  low?: OnvifMediaSource
+
+  /** Snapshot source (HTTP snapshot URL or JPEG profile) */
+  snapshot?: OnvifMediaSource
+}
+
 export class Media {
   private readonly onvif: Onvif
   public profiles: Profile[] = []
@@ -322,6 +383,147 @@ export class Media {
         </GetSnapshotUri>`
     })
     return linerase(data.getSnapshotUriResponse?.mediaUri) as { uri: AnyURI }
+  }
+
+  /**
+   * Get all media sources from the device with categorized streams.
+   *
+   * Returns all profiles with their stream URIs, organized into:
+   * - high: Highest resolution video stream
+   * - mid: Middle resolution video stream (if 3+ video streams)
+   * - low: Lowest resolution video stream (if 2+ video streams)
+   * - snapshot: Best snapshot source (HTTP snapshot URI or JPEG profile)
+   *
+   * @returns Object containing all sources and categorized streams
+   */
+  async getMediaSources(): Promise<OnvifMediaResult> {
+    const sources: OnvifMediaSource[] = []
+
+    // Iterate over all profiles
+    for (const profile of this.profiles) {
+      const videoEnc = profile.videoEncoderConfiguration
+      if (!videoEnc) {
+        // Skip profiles without video encoder configuration
+        continue
+      }
+
+      const encoding = videoEnc.encoding?.toUpperCase() ?? 'UNKNOWN'
+      const width = videoEnc.resolution?.width ?? 0
+      const height = videoEnc.resolution?.height ?? 0
+
+      if (width === 0 || height === 0) {
+        // Skip profiles without valid resolution
+        continue
+      }
+
+      // Get stream URI for this profile
+      let streamUri: string | undefined
+      try {
+        const result = await this.getStreamUri({
+          profileToken: profile.token,
+          protocol: 'RTSP',
+          stream: 'RTP-Unicast'
+        })
+        streamUri = typeof result === 'string' ? result : result?.uri
+      } catch {
+        // Failed to get stream URI, skip this profile
+        continue
+      }
+
+      if (!streamUri) {
+        continue
+      }
+
+      // Get snapshot URI for this profile (try/catch per profile!)
+      let snapshotUri: string | undefined
+      try {
+        const snapshotResult = await this.getSnapshotUri({ profileToken: profile.token })
+        snapshotUri = snapshotResult?.uri
+      } catch {
+        // Snapshot not available for this profile
+      }
+
+      // Extract optional fields
+      const fps = videoEnc.rateControl?.frameRateLimit
+      const bitrate = videoEnc.rateControl?.bitrateLimit
+
+      // Check for audio
+      const hasAudio = profile.audioEncoderConfiguration !== undefined
+
+      // Is this a JPEG/snapshot-only stream?
+      const isSnapshot = encoding === 'JPEG'
+
+      const source: OnvifMediaSource = {
+        profileToken: profile.token,
+        profileName: profile.name || `profile_${sources.length + 1}`,
+        streamUri,
+        encoding,
+        resolution: { width, height },
+        pixels: width * height,
+        isSnapshot,
+        hasAudio
+      }
+
+      // Add optional properties only if defined
+      if (snapshotUri) source.snapshotUri = snapshotUri
+      if (fps !== undefined) source.fps = fps
+      if (bitrate !== undefined) source.bitrate = bitrate
+
+      sources.push(source)
+    }
+
+    // Separate video streams (H264/H265) and JPEG streams
+    const videoStreams = sources.filter((s) => !s.isSnapshot)
+    const jpegStreams = sources.filter((s) => s.isSnapshot)
+
+    // Sort video streams by pixels (highest first)
+    videoStreams.sort((a, b) => b.pixels - a.pixels)
+
+    // Sort JPEG streams by pixels (highest first)
+    jpegStreams.sort((a, b) => b.pixels - a.pixels)
+
+    // Combine: video streams first, then JPEG streams
+    const sortedSources = [...videoStreams, ...jpegStreams]
+
+    // Assign roles based on number of video streams
+    let high: OnvifMediaSource | undefined
+    let mid: OnvifMediaSource | undefined
+    let low: OnvifMediaSource | undefined
+
+    if (videoStreams.length === 1) {
+      high = videoStreams[0]
+    } else if (videoStreams.length === 2) {
+      high = videoStreams[0]
+      low = videoStreams[1]
+    } else if (videoStreams.length >= 3) {
+      high = videoStreams[0]
+      mid = videoStreams[1]
+      low = videoStreams[videoStreams.length - 1]
+    }
+
+    // Determine snapshot source (in priority order)
+    let snapshot: OnvifMediaSource | undefined
+    if (high?.snapshotUri) {
+      snapshot = high
+    } else if (mid?.snapshotUri) {
+      snapshot = mid
+    } else if (low?.snapshotUri) {
+      snapshot = low
+    } else if (jpegStreams.length > 0) {
+      // Fall back to JPEG profile
+      snapshot = jpegStreams[0]
+    }
+
+    const result: OnvifMediaResult = {
+      sources: sortedSources
+    }
+
+    if (high) result.high = high
+    if (mid) result.mid = mid
+    if (low) result.low = low
+    if (snapshot) result.snapshot = snapshot
+
+    return result
   }
 
   async getOSDs({ configurationToken, OSDToken }: GetOSDs = {}): Promise<GetOSDsResponse> {
