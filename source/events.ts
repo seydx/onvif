@@ -348,6 +348,31 @@ export class Events extends EventEmitter {
   }
 
   /**
+   * Test if the camera actually supports PullPoint events.
+   * Some cameras advertise event support but fail when trying to pull.
+   * Call this before starting the event loop to verify support.
+   *
+   * @returns true if events are supported and working, false otherwise
+   */
+  async testEventSupport(): Promise<boolean> {
+    try {
+      // Try to create a subscription and pull once with short timeout
+      await this.createPullPointSubscription()
+      await this.pullMessages({ timeout: 'PT1S', messageLimit: 1 })
+      await this.unsubscribe()
+      return true
+    } catch {
+      // Cleanup subscription if it was created
+      try {
+        await this.unsubscribe()
+      } catch {
+        // Ignore cleanup errors
+      }
+      return false
+    }
+  }
+
+  /**
    * Get event categories that have been observed (actually received)
    * More reliable than TopicSet-based detection for cameras that don't advertise all capabilities
    */
