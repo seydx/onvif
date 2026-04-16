@@ -43,16 +43,20 @@ function isTransientError(error: unknown): boolean {
 export class HttpClient {
   private readonly baseUrl: string
   private readonly options: HttpClientOptions
-  private readonly agent: Agent
+  private agent: Agent
 
   constructor(options: HttpClientOptions) {
     this.options = options
     const { hostname, port, useSecure, secureOptions } = options
     this.baseUrl = `${useSecure ? 'https' : 'http'}://${hostname}:${port}`
+    this.agent = this.createAgent()
+  }
 
-    // Create undici Agent with SSL/TLS options if needed
+  private createAgent(): Agent {
+    const { useSecure, secureOptions } = this.options
     if (useSecure && secureOptions) {
-      this.agent = new Agent({
+      return new Agent({
+        connections: 1,
         connect: {
           rejectUnauthorized: secureOptions.rejectUnauthorized ?? false,
           ca: secureOptions.ca,
@@ -61,9 +65,10 @@ export class HttpClient {
           passphrase: secureOptions.passphrase
         }
       })
-    } else {
-      this.agent = new Agent()
     }
+    return new Agent({
+      connections: 1,
+    })
   }
 
   private createUrl(service?: string): string {
@@ -81,7 +86,19 @@ export class HttpClient {
         return await this.sendRequest<T>(options)
       } catch (error) {
         lastError = error
-        if (attempt === 0 && isTransientError(error)) continue
+        if (attempt === 0 && isTransientError(error)) {
+          // eslint-disable-next-line no-console
+          console.warn(
+            `[onvif-http] transient error on attempt 1, rotate agent + retry: name=${(error as Error)?.name ?? 'unknown'} code=${(error as { code?: string })?.code ?? 'none'} msg=${(error as Error)?.message ?? ''}`
+          )
+          // The old pool may contain stale/corrupted sockets — rotate to a
+          // fresh Agent so the retry doesn't reuse them. We don't await the
+          // old agent's graceful close: concurrent callers that are already
+          // mid-request on the old agent must not see their work aborted
+          // (which would throw ClientDestroyedError under us).
+          this.rotateAgent()
+          continue
+        }
         throw error
       }
     }
@@ -110,6 +127,21 @@ export class HttpClient {
 
     const xml = await response.body.text()
     return await parseSOAPString<T>(xml)
+  }
+
+  /**
+   * Swap `this.agent` for a fresh one so subsequent requests use a clean pool.
+   * The old agent's pending requests are allowed to drain via `close()` in the
+   * background — we do NOT await it, and we don't call `destroy()` (which would
+   * abort concurrent in-flight requests and surface ClientDestroyedError in
+   * unrelated callers).
+   */
+  private rotateAgent(): void {
+    const old = this.agent
+    this.agent = this.createAgent()
+    void old.close().catch(() => {
+      /* ignore — agent is discarded anyway */
+    })
   }
 
   /**
