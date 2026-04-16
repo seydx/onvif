@@ -19,6 +19,27 @@ export type RequestOptions = {
   raw?: boolean
 }
 
+/**
+ * Transient network / protocol errors worth one retry on a fresh connection.
+ * Covers the common "keep-alive stale socket" race where a camera has closed
+ * the pooled connection on its side but undici still tries to reuse it —
+ * parser sees garbage or FIN bytes and throws HTTPParserError. Also catches
+ * sudden socket resets from flaky devices under burst load (e.g. PTZ autotrack
+ * hammering ContinuousMove/Stop every few hundred ms).
+ */
+function isTransientError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false
+  if (error.name === 'HTTPParserError') return true
+  const code = (error as { code?: string }).code
+  if (code === undefined) return false
+  if (code === 'ECONNRESET' || code === 'EPIPE' || code === 'ETIMEDOUT') return true
+  // undici-native error codes
+  if (code === 'UND_ERR_SOCKET' || code === 'UND_ERR_CLOSED' || code === 'UND_ERR_CONNECT_TIMEOUT') return true
+  // HTTP parser errors surface with an HPE_ prefix
+  if (code.startsWith('HPE_')) return true
+  return false
+}
+
 export class HttpClient {
   private readonly baseUrl: string
   private readonly options: HttpClientOptions
@@ -51,6 +72,23 @@ export class HttpClient {
   }
 
   public async request<T>(options: RequestOptions): Promise<[T, string]> {
+    // One retry on transient network/parser errors. This matters particularly
+    // for PTZ Stop commands — a silently-dropped Stop makes the camera keep
+    // panning and causes autotrack oscillation.
+    let lastError: unknown
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await this.sendRequest<T>(options)
+      } catch (error) {
+        lastError = error
+        if (attempt === 0 && isTransientError(error)) continue
+        throw error
+      }
+    }
+    throw lastError
+  }
+
+  private async sendRequest<T>(options: RequestOptions): Promise<[T, string]> {
     const { body, service, url: requestUrl } = options
     const url = requestUrl !== undefined ? (typeof requestUrl === 'string' ? requestUrl : requestUrl.toString()) : this.createUrl(service)
 
