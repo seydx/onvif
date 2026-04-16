@@ -22,7 +22,7 @@
     "noImplicitAny": true,
   },
   "include": [
-    "source",
+    "src",
   ],
   "exclude": [
     "node_modules",
