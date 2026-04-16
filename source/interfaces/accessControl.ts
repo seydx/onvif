@@ -1,6 +1,6 @@
-import type { ReferenceToken } from './common.ts'
-import type { Description, Name, StringList } from './onvif.ts'
-import type { DataEntity } from './types.ts'
+import type { ReferenceToken } from './common.js'
+import type { Description, Name, StringList } from './onvif.js'
+import type { DataEntity } from './types.js'
 
 /** The Decision enumeration represents a choice of two available options for an access request: */
 export type Decision = 'Granted' | 'Denied'

@@ -1,6 +1,6 @@
 import type { ConnectionOptions } from 'node:tls'
 import { Agent, request } from 'undici'
-import { parseSOAPString } from '../utils/xml.ts'
+import { parseSOAPString } from '../utils/xml.js'
 
 export type HttpClientOptions = {
   hostname: string

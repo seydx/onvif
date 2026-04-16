@@ -1,5 +1,5 @@
-import type { ReferenceToken } from './common.ts'
-import type { Capabilities, CodingCapabilities, Layout, LayoutOptions, PaneConfiguration } from './onvif.ts'
+import type { ReferenceToken } from './common.js'
+import type { Capabilities, CodingCapabilities, Layout, LayoutOptions, PaneConfiguration } from './onvif.js'
 
 export type GetServiceCapabilities = Record<string, unknown>
 export type GetServiceCapabilitiesResponse = {

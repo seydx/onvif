@@ -1,5 +1,5 @@
-import type { AnyURI } from './basics.ts'
-import type { Color, Polygon, ReferenceToken } from './common.ts'
+import type { AnyURI } from './basics.js'
+import type { Color, Polygon, ReferenceToken } from './common.js'
 import type {
   AudioDecoderConfiguration,
   AudioEncoder2Configuration,
@@ -25,7 +25,7 @@ import type {
   VideoResolution,
   VideoSourceConfiguration,
   VideoSourceConfigurationOptions
-} from './onvif.ts'
+} from './onvif.js'
 
 export type ConfigurationEnumeration =
   | 'All'

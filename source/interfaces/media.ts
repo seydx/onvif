@@ -1,4 +1,4 @@
-import type { ReferenceToken } from './common.ts'
+import type { ReferenceToken } from './common.js'
 import type {
   AudioDecoderConfiguration,
   AudioDecoderConfigurationOptions,
@@ -27,7 +27,7 @@ import type {
   VideoSource,
   VideoSourceConfiguration,
   VideoSourceConfigurationOptions
-} from './onvif.ts'
+} from './onvif.js'
 
 export type Capabilities = {
   /** Indicates if GetSnapshotUri is supported. */

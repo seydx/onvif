@@ -8,7 +8,7 @@ import type {
   GetServicesResponse,
   Service,
   SetNTP
-} from './interfaces/deviceManagement.ts'
+} from './interfaces/deviceManagement.js'
 import type {
   Capabilities,
   CapabilitiesExtension,
@@ -17,9 +17,9 @@ import type {
   NTPInformation,
   NetworkInterface,
   Scope
-} from './interfaces/onvif.ts'
-import type { Onvif, OnvifServices, SetSystemDateAndTimeOptions } from './onvif.ts'
-import { linerase } from './utils/xml.ts'
+} from './interfaces/onvif.js'
+import type { Onvif, OnvifServices, SetSystemDateAndTimeOptions } from './onvif.js'
+import { linerase } from './utils/xml.js'
 
 /**
  * Device methods

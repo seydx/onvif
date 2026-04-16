@@ -1,4 +1,4 @@
-import type { ReferenceToken } from './common.ts'
+import type { ReferenceToken } from './common.js'
 import type {
   Capabilities,
   FocusMove,
@@ -7,7 +7,7 @@ import type {
   ImagingStatus20,
   MoveOptions20,
   Name
-} from './onvif.ts'
+} from './onvif.js'
 
 /**
  * Describes standard Imaging Preset types, used to facilitate Multi-language support and client display.

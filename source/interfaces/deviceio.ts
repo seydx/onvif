@@ -1,4 +1,4 @@
-import type { ReferenceToken } from './common.ts'
+import type { ReferenceToken } from './common.js'
 import type {
   AudioOutputConfiguration,
   AudioOutputConfigurationOptions,
@@ -18,7 +18,7 @@ import type {
   VideoOutputConfigurationOptions,
   VideoSourceConfiguration,
   VideoSourceConfigurationOptions
-} from './onvif.ts'
+} from './onvif.js'
 
 /** The type of serial port.Generic can be signaled as a vendor specific serial port type. */
 export type SerialPortType =

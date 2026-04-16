@@ -1,5 +1,5 @@
-import type { ReferenceToken } from './common.ts'
-import type { PositiveInteger } from './types.ts'
+import type { ReferenceToken } from './common.js'
+import type { PositiveInteger } from './types.js'
 
 /** The direction for PanMove to move the device. */
 export type PanDirection = 'Left' | 'Right'

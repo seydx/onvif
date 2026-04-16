@@ -1,5 +1,5 @@
-import type { AnyURI } from './basics.ts'
-import type { ReferenceToken } from './common.ts'
+import type { AnyURI } from './basics.js'
+import type { ReferenceToken } from './common.js'
 import type {
   AnalyticsEngine,
   AnalyticsEngineControl,
@@ -8,7 +8,7 @@ import type {
   Capabilities,
   StreamSetup,
   VideoAnalyticsConfiguration
-} from './onvif.ts'
+} from './onvif.js'
 
 export type GetServiceCapabilities = Record<string, unknown>
 export type GetServiceCapabilitiesResponse = {

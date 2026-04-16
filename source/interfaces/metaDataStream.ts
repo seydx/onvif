@@ -1,4 +1,4 @@
-import type { AnyURI } from './basics.ts'
+import type { AnyURI } from './basics.js'
 import type {
   ColorDescriptor,
   GeoLocation,
@@ -9,10 +9,10 @@ import type {
   SphericalCoordinate,
   Transformation,
   Vector
-} from './common.ts'
-import type { HumanBody } from './humanBody.2.ts'
-import type { HumanFace } from './humanFace.2.ts'
-import type { OnvifDate } from './onvif.ts'
+} from './common.js'
+import type { HumanBody } from './humanBody.2.js'
+import type { HumanFace } from './humanFace.2.js'
+import type { OnvifDate } from './onvif.js'
 
 export type VehicleType = 'Bus' | 'Car' | 'Truck' | 'Bicycle' | 'Motorcycle'
 export type PlateType = 'Normal' | 'Police' | 'Diplomat' | 'Temporary'

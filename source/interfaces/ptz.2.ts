@@ -1,4 +1,4 @@
-import type { GeoLocation, PTZStatus, PTZVector, ReferenceToken } from './common.ts'
+import type { GeoLocation, PTZStatus, PTZVector, ReferenceToken } from './common.js'
 import type {
   AuxiliaryData,
   Capabilities,
@@ -10,7 +10,7 @@ import type {
   PTZPresetTourOperation,
   PTZPresetTourOptions,
   PTZSpeed
-} from './onvif.ts'
+} from './onvif.js'
 
 export type GetServiceCapabilities = Record<string, unknown>
 export type GetServiceCapabilitiesResponse = {

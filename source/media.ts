@@ -1,5 +1,5 @@
-import type { AnyURI } from './interfaces/basics.ts'
-import type { ReferenceToken } from './interfaces/common.ts'
+import type { AnyURI } from './interfaces/basics.js'
+import type { ReferenceToken } from './interfaces/common.js'
 import type {
   ConfigurationSet,
   GetOSDOptions,
@@ -12,22 +12,22 @@ import type {
   GetVideoSourceConfigurationOptionsResponse,
   GetVideoSourceConfigurations,
   MediaProfile
-} from './interfaces/media.2.ts'
+} from './interfaces/media.2.js'
 import type {
   GetSnapshotUri,
   GetVideoEncoderConfigurationsResponse,
   GetVideoSourceConfigurationsResponse,
   GetVideoSourcesResponse
-} from './interfaces/media.ts'
+} from './interfaces/media.js'
 import type {
   AudioEncoderConfiguration,
   MediaUri,
   Profile,
   VideoEncoderConfiguration,
   VideoSource
-} from './interfaces/onvif.ts'
-import type { Onvif } from './onvif.ts'
-import { linerase } from './utils/xml.ts'
+} from './interfaces/onvif.js'
+import type { Onvif } from './onvif.js'
+import { linerase } from './utils/xml.js'
 
 export type GetStreamUriOptions = {
   profileToken?: ReferenceToken

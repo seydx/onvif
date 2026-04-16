@@ -1,7 +1,8 @@
 // biome-ignore lint/performance/noBarrelFile: <explanation>
-export * from './device.ts'
-export * from './discovery.ts'
-export * from './events.ts'
-export * from './media.ts'
-export * from './onvif.ts'
-export * from './ptz.ts'
+export * from './device.js'
+export * from './discovery.js'
+export * from './events.js'
+export * from './media.js'
+export * from './onvif.js'
+export * from './ptz.js'
+

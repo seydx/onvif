@@ -15,6 +15,5 @@ node_modules
 .vscode
 test.ts
 
-/src
-/binary
-/dist
+/source
+/test

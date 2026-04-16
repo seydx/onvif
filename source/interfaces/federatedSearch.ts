@@ -1,5 +1,5 @@
-import type { AnyURI } from './basics.ts'
-import type { Capabilities } from './onvif.ts'
+import type { AnyURI } from './basics.js'
+import type { Capabilities } from './onvif.js'
 
 /** Corresponds to SimpleTermType definition in ISO/IEC 15938-12 */
 export type SimpleTermType = AnyURI

@@ -15,7 +15,7 @@ import type {
   RecordingSummary,
   SearchScope,
   SearchState
-} from './onvif.ts'
+} from './onvif.js'
 
 export type GetServiceCapabilities = Record<string, unknown>
 export type GetServiceCapabilitiesResponse = {

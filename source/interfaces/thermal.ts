@@ -1,5 +1,5 @@
-import type { ReferenceToken } from './common.ts'
-import type { Capabilities, FloatRange, Name } from './onvif.ts'
+import type { ReferenceToken } from './common.js'
+import type { Capabilities, FloatRange, Name } from './onvif.js'
 
 export type Polarity = 'WhiteHot' | 'BlackHot'
 /**

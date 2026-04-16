@@ -1,5 +1,5 @@
-import type { PTZVector, Rectangle, ReferenceToken, Vector } from './common.ts'
-import type { FloatRange } from './onvif.ts'
+import type { PTZVector, Rectangle, ReferenceToken, Vector } from './common.js'
+import type { FloatRange } from './onvif.js'
 
 export type TemperatureCondition = 'LessThan' | 'MoreThan' | 'EqualTo' | 'Change'
 export type TemperatureType = 'MaxTemp' | 'MinTemp' | 'AverageTemp' | 'StdDeviation' | 'MedianTemp' | 'ISOCoverage'

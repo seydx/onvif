@@ -2,8 +2,8 @@ import { createSocket, type RemoteInfo } from 'node:dgram'
 import { EventEmitter } from 'node:events'
 import os from 'node:os'
 import { URL } from 'node:url'
-import { Onvif } from './onvif.ts'
-import { guid, linerase, parseSOAPString } from './utils/xml.ts'
+import { Onvif } from './onvif.js'
+import { guid, linerase, parseSOAPString } from './utils/xml.js'
 
 /**
  * Parsed information from WS-Discovery Scopes

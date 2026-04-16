@@ -1,6 +1,6 @@
-import type { ReferenceToken } from './common.ts'
-import type { Description, Name } from './onvif.ts'
-import type { DataEntity } from './types.ts'
+import type { ReferenceToken } from './common.js'
+import type { Description, Name } from './onvif.js'
+import type { DataEntity } from './types.js'
 
 /**
  * The service capabilities reflect optional functionality of a service. The information is static

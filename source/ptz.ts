@@ -1,8 +1,8 @@
-import type { Duration, MoveStatus, ReferenceToken, Vector1D, Vector2D } from './interfaces/common.ts'
-import type { PTZConfiguration, PTZSpeed, Space1DDescription, Space2DDescription } from './interfaces/onvif.ts'
-import type { GetConfigurationsResponse, SetPresetResponse as SetPresetResponseType } from './interfaces/ptz.2.ts'
-import type { Onvif } from './onvif.ts'
-import { linerase } from './utils/xml.ts'
+import type { Duration, MoveStatus, ReferenceToken, Vector1D, Vector2D } from './interfaces/common.js'
+import type { PTZConfiguration, PTZSpeed, Space1DDescription, Space2DDescription } from './interfaces/onvif.js'
+import type { GetConfigurationsResponse, SetPresetResponse as SetPresetResponseType } from './interfaces/ptz.2.js'
+import type { Onvif } from './onvif.js'
+import { linerase } from './utils/xml.js'
 
 /**
  * Represents the supported PTZ preset tour options.

@@ -22,12 +22,10 @@
     "noImplicitAny": true,
   },
   "include": [
-    "src",
-    "scripts",
+    "source",
   ],
   "exclude": [
     "node_modules",
     "dist",
-    "binary"
   ]
 }

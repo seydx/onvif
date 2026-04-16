@@ -1,5 +1,5 @@
-import type { AnyURI } from './basics.ts'
-import type { IntRange, LocationEntity, ReferenceToken } from './common.ts'
+import type { AnyURI } from './basics.js'
+import type { IntRange, LocationEntity, ReferenceToken } from './common.js'
 import type {
   AttachmentData,
   AuxiliaryData,
@@ -53,7 +53,7 @@ import type {
   SystemLogUriList,
   TimeZone,
   User
-} from './onvif.ts'
+} from './onvif.js'
 
 export type AutoGeoModes = 'Location' | 'Heading' | 'Leveling'
 export type StorageType = 'NFS' | 'CIFS' | 'CDMI' | 'FTP' | 'ObjectStorageS3' | 'ObjectStorageAzure'

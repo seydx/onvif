@@ -1,4 +1,4 @@
-import type { AnyURI, FilterType } from './basics.ts'
+import type { AnyURI, FilterType } from './basics.js'
 import type {
   Color,
   Duration,
@@ -11,7 +11,7 @@ import type {
   Vector,
   Vector1D,
   Vector2D
-} from './common.ts'
+} from './common.js'
 
 /** User readable name. Length up to 64 characters. */
 export type Name = string

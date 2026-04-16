@@ -1,5 +1,5 @@
-import type { AnyURI, FilterType } from './basics.ts'
-import type { OnvifDate } from './onvif.ts'
+import type { AnyURI, FilterType } from './basics.js'
+import type { OnvifDate } from './onvif.js'
 
 /**
  * Event Broker Protocol types for MQTT/WebSocket connections

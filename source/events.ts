@@ -13,9 +13,9 @@ import type {
   PullMessagesOptions,
   PullMessagesResult,
   PullPointSubscription
-} from './interfaces/events.types.ts'
-import type { Onvif } from './onvif.ts'
-import { linerase } from './utils/xml.ts'
+} from './interfaces/events.types.js'
+import type { Onvif } from './onvif.js'
+import { linerase } from './utils/xml.js'
 
 // Re-export types for consumers
 export type {

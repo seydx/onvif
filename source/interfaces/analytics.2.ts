@@ -1,6 +1,6 @@
-import type { ReferenceToken } from './common.ts'
-import type { Frame } from './metaDataStream.ts'
-import type { Capabilities, Config, SupportedAnalyticsModules, SupportedRules } from './onvif.ts'
+import type { ReferenceToken } from './common.js'
+import type { Frame } from './metaDataStream.js'
+import type { Capabilities, Config, SupportedAnalyticsModules, SupportedRules } from './onvif.js'
 
 export type ConfigOptions = {
   /** The RuleType the ConfigOptions applies to if the Name attribute is ambiguous. */

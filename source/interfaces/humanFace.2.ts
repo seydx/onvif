@@ -1,4 +1,4 @@
-import type { ColorDescriptor, GeoOrientation, IntRange } from './common.ts'
+import type { ColorDescriptor, GeoOrientation, IntRange } from './common.js'
 
 export type Gender = 'Male' | 'Female'
 export type Complexion = 'White' | 'Black' | 'Asian' | 'Other'

@@ -1,5 +1,5 @@
-import type { AnyURI } from './basics.ts'
-import type { Capabilities, OnvifDate } from './onvif.ts'
+import type { AnyURI } from './basics.js'
+import type { Capabilities, OnvifDate } from './onvif.js'
 
 export type AppState = 'Active' | 'Inactive' | 'Installing' | 'Uninstalling' | 'Removed' | 'InstallationFailed'
 export type AppInfo = {

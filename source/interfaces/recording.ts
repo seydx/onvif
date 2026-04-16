@@ -1,4 +1,4 @@
-import type { ReferenceToken } from './common.ts'
+import type { ReferenceToken } from './common.js'
 import type {
   ArrayOfFileProgress,
   Capabilities,
@@ -16,7 +16,7 @@ import type {
   StringAttrList,
   TrackConfiguration,
   TrackReference
-} from './onvif.ts'
+} from './onvif.js'
 
 export type RecordingOptions = {
   job?: JobOptions

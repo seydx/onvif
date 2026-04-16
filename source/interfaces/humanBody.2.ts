@@ -1,4 +1,4 @@
-import type { ColorDescriptor } from './common.ts'
+import type { ColorDescriptor } from './common.js'
 
 export type BodyShape = 'Fat' | 'Thin' | 'Other'
 export type TopsCategory = 'LongSleeve' | 'ShortSleeve' | 'Sleeveless' | 'Other'

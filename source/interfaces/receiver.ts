@@ -1,5 +1,5 @@
-import type { ReferenceToken } from './common.ts'
-import type { Capabilities, Receiver, ReceiverConfiguration, ReceiverMode, ReceiverStateInformation } from './onvif.ts'
+import type { ReferenceToken } from './common.js'
+import type { Capabilities, Receiver, ReceiverConfiguration, ReceiverMode, ReceiverStateInformation } from './onvif.js'
 
 export type GetServiceCapabilities = Record<string, unknown>
 export type GetServiceCapabilitiesResponse = {

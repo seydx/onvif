@@ -1,5 +1,5 @@
-import type { AnyURI } from './basics.ts'
-import type { OnvifDate } from './onvif.ts'
+import type { AnyURI } from './basics.js'
+import type { OnvifDate } from './onvif.js'
 
 /**
  * Unique identifier for a physical or logical resource.

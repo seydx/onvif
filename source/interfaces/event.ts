@@ -1,5 +1,5 @@
-import type { AnyURI, FilterType } from './basics.ts'
-import type { Capabilities, OnvifDate } from './onvif.ts'
+import type { AnyURI, FilterType } from './basics.js'
+import type { Capabilities, OnvifDate } from './onvif.js'
 
 export type EventBrokerProtocol = 'mqtt' | 'mqtts' | 'ws' | 'wss'
 export type ConnectionStatus = 'Offline' | 'Connecting' | 'Connected'
