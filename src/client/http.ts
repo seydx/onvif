@@ -30,6 +30,17 @@ function isTransientError(error: unknown): boolean {
   return false
 }
 
+function sameHostTarget(from: string, location: string | string[] | undefined): string | undefined {
+  if (typeof location !== 'string') return undefined
+  try {
+    const target = new URL(location, from)
+    // the SOAP body carries the credentials, so only a redirect on the same camera is followed
+    return target.hostname === new URL(from).hostname ? target.toString() : undefined
+  } catch {
+    return undefined
+  }
+}
+
 export class HttpClient {
   private readonly baseUrl: string
   private readonly options: HttpClientOptions
@@ -83,7 +94,7 @@ export class HttpClient {
     throw lastError
   }
 
-  private async sendRequest<T>(options: RequestOptions): Promise<[T, string]> {
+  private async sendRequest<T>(options: RequestOptions, redirected = false): Promise<[T, string]> {
     const { body, service, url: requestUrl } = options
     const url = requestUrl !== undefined ? (typeof requestUrl === 'string' ? requestUrl : requestUrl.toString()) : this.createUrl(service)
 
@@ -99,8 +110,19 @@ export class HttpClient {
       dispatcher: this.agent
     })
 
+    const location = response.headers.location
+    const target = !redirected && response.statusCode >= 300 && response.statusCode < 400 ? sameHostTarget(url, location) : undefined
+    if (target) {
+      await response.body.dump()
+      try {
+        return await this.sendRequest<T>({ ...options, url: target }, true)
+      } catch (error) {
+        throw new Error(`redirected to ${target}: ${error instanceof Error ? error.message : error}`, { cause: error })
+      }
+    }
+
     if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw new Error(`HTTP error! status: ${response.statusCode}`)
+      throw new Error(`HTTP error! status: ${response.statusCode}${location ? `, redirected to ${location}` : ''}`)
     }
 
     const xml = await response.body.text()

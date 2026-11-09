@@ -319,12 +319,16 @@ export class Onvif extends EventEmitter {
    */
   public parseUrl(address: string): URL {
     const parsedAddress = new URL(address)
+    const protocol = this.useSecure ? 'https:' : 'http:'
     // If host for service and default host differs, also if preserve address property set
-    // we substitute host, hostname and port from settings then rebuild the href using .format
+    // we substitute protocol, host, hostname and port from settings then rebuild the href using .format
     if (
       this.preserveAddress &&
-      (this.hostname !== parsedAddress.hostname || this.port.toString() !== parsedAddress.port)
+      (this.hostname !== parsedAddress.hostname ||
+        this.port.toString() !== parsedAddress.port ||
+        protocol !== parsedAddress.protocol)
     ) {
+      parsedAddress.protocol = protocol
       parsedAddress.hostname = this.hostname
       parsedAddress.host = `${this.hostname}:${this.port}`
       parsedAddress.port = this.port.toString()
