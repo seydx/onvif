@@ -174,13 +174,17 @@ export class Device {
    * Receive device information
    */
   async getDeviceInformation(): Promise<GetDeviceInformationResponse> {
-    const [data] = await this.onvif.request<{ getDeviceInformationResponse?: unknown }>({
+    const [data] = await this.onvif.request<{ getDeviceInformationResponse?: Record<string, unknown> }>({
       body: '<GetDeviceInformation xmlns="http://www.onvif.org/ver10/device/wsdl"/>'
     })
-    this.onvif.deviceInformation = linerase(data.getDeviceInformationResponse) as GetDeviceInformationResponse
-    if (!this.onvif.deviceInformation) {
+    if (!data.getDeviceInformationResponse) {
       throw new Error('Invalid response structure')
     }
+
+    // every field is text, linerase would turn a firmware version like 1.10 into the number 1.1
+    this.onvif.deviceInformation = Object.fromEntries(
+      Object.entries(data.getDeviceInformationResponse).filter(([, value]) => typeof value === 'string')
+    ) as GetDeviceInformationResponse
 
     return this.onvif.deviceInformation
   }
